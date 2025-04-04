@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123x123
+      POSTGRES_DB: base
+    ports:
+      - "5432:5432"
+
+  migrations:
+    image: alpine:latest
+    working_dir: /app/migrations
+    volumes:
+      - ./migrations:/app/migrations
+    depends_on:
+      - postgres
+    entrypoint: >
+      sh -c "
+      apk add --no-cache curl bash &&
+      curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | sh &&
+      /usr/local/bin/goose -dir /app/migrations postgres 'postgres://root:123x123@postgres:5432/base?sslmode=disable' up
+      "
+    enviromnet:
+      - GOOSE_DRIVER=postgres
+      - GOOSE_DBSTRING=postgresql://root:123@localhost:5432/base?sslmode=disable
+      - GOOSE_MIGRATION_DIR=./migrations
+
+  auth:
+    image: alpine:latest
+    working_dir: /app
+    volumes:
+      - ./authApp:/app/authApp 
+      - ./logs:/app/logs
+    ports:
+      - "3001:8080"
+    environment:
+      - POSTGRES_DSN=postgresql://root:123x123@postgres:5432/base?sslmode=disable
+      - LOG_LEVEL=debug
+      - SECRET=your_secret_key
+      - GOOGLE_SECRET=GOCSPX-xxxxx-xxxx
+      - GOOGLE_CLIENT_ID=xxxx-xxxxx.apps.googleusercontent.com
+      - DOMAIN=theaesthetics.ru
+      - FRONT_URL=https://xxxx.ru
+      - SSO_URL=https://sso.xxxx.ru
+      - MODE=prod
+    command: ["/app/authApp"]
+
+  base:
+    image: alpine:latest
+    working_dir: /app
+    volumes:
+      - ./baseApp:/app/baseApp  
+      - ./logs:/app/logs
+    ports:
+      - "3003:8080"
+    environment:
+      - POSTGRES_DSN=postgresql://root:123x123@postgres:5432/base?sslmode=disable
+      - LOG_LEVEL=debug
+    command: ["/app/baseApp"]
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SSO_URL=https://sso.xxx.ru
+      - SSO_URL=https://sso.xxx.ru
+  
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./logs:/app/logs:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/loki.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3004:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - loki

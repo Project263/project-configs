@@ -1,0 +1,5 @@
+{"func":"base/internal/database.ConnectDB:30","level":"error","msg":"ошибка подключения к базе данных (попытка 1): failed to connect to `user=root database=base`: 172.18.0.6:5432 (postgres): dial error: dial tcp 172.18.0.6:5432: connect: connection refused","time":"2025-04-04T08:56:13Z"}
+{"func":"base/internal/database.ConnectDB:25","level":"info","msg":"Успешно подключено к базе данных на попытке 2","time":"2025-04-04T08:56:18Z"}
+{"func":"main.main:25","level":"info","msg":"Сервис auth запущен","time":"2025-04-04T08:56:18Z"}
+{"func":"main.main:26","level":"warning","msg":"Проблема с подключением к БД","time":"2025-04-04T08:56:18Z"}
+{"func":"main.main:27","level":"error","msg":"Критическая ошибка","time":"2025-04-04T08:56:18Z"}
